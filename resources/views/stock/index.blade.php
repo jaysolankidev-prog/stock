@@ -739,8 +739,7 @@ document.addEventListener('click', function(e) {
           
           // After animation, remove the row and recalculate
           setTimeout(() => {
-            row.remove();
-            recalculateAllTotals();
+            location.reload();
           }, 300);
         } else {
           showFlash('Error deleting item', 'error');
