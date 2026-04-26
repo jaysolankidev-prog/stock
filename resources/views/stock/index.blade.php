@@ -62,6 +62,46 @@
   .card-70  .card-value { color: #10b981; }
   .card-80  .card-value { color: #f59e0b; }
   .card-all .card-value { color: #e94560; }
+  .card-size { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+  .card-size:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
+  /* ── Focus Mode ── */
+  .focus-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 900;
+    backdrop-filter: blur(5px);
+  }
+  .focus-overlay.active { display: block; }
+
+  .section.focused {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 95vw; height: 90vh;
+    z-index: 1000; background: #fff;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    animation: focusEntry 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes focusEntry {
+    from { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
+    to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  }
+
+  .section.focused .section-header { padding: 16px 24px; font-size: 18px; }
+  .section.focused table { flex: 1; display: table; width: 100%; border-collapse: collapse; }
+  .section.focused .table-container { flex: 1; overflow-y: auto; }
+  .section.focused thead th { position: sticky; top: 0; z-index: 10; background: #f8f9fa; }
+
+  .focus-close {
+    display: none; width: 28px; height: 28px;
+    background: rgba(255,255,255,0.2); color: #fff;
+    border-radius: 50%; align-items: center; justify-content: center;
+    font-size: 20px; cursor: pointer; transition: background 0.2s;
+    line-height: 1;
+  }
+  .focus-close:hover { background: rgba(255,255,255,0.4); }
+  .section.focused .focus-close { display: flex; }
+
 
   /* Search / lookup */
   .lookup-panel {
@@ -258,7 +298,10 @@
   </div>
 </div>
 
+<div class="focus-overlay" id="focusOverlay" onclick="closeFocus()"></div>
+
 <div class="page">
+
 
   <!-- Bag lookup -->
   <div class="lookup-panel">
@@ -501,6 +544,46 @@ function updateClock() {
 }
 updateClock();
 setInterval(updateClock, 1000);
+
+// Focus Mode logic
+function openFocus(fullKey) {
+  const section = document.querySelector(`.section[data-full-key="${fullKey}"]`);
+  if (!section) return;
+
+  document.getElementById('focusOverlay').classList.add('active');
+  
+  // Create a container for the table if not already present (to allow scrolling in focused mode)
+  if (!section.querySelector('.table-container')) {
+    const table = section.querySelector('table');
+    const container = document.createElement('div');
+    container.className = 'table-container';
+    table.parentNode.insertBefore(container, table);
+    container.appendChild(table);
+  }
+
+  section.classList.add('focused');
+  document.body.style.overflow = 'hidden'; // Prevent background scrolling
+}
+
+function closeFocus(e) {
+  if (e) e.stopPropagation();
+  
+  const focusedSection = document.querySelector('.section.focused');
+  if (focusedSection) {
+    focusedSection.classList.remove('focused');
+  }
+  
+  document.getElementById('focusOverlay').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// Add click listeners to summary cards
+document.querySelectorAll('.card-size').forEach(card => {
+  card.addEventListener('click', function() {
+    const fullKey = this.dataset.summarySize;
+    openFocus(fullKey);
+  });
+});
 
 // Modal
 function openModal()  { 

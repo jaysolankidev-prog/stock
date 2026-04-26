@@ -10,10 +10,13 @@
   if($isSqf) $label = 'Square Fit';
 @endphp
 
-<div class="section bag-section" data-stock-size="{{ $size }}">
+<div class="section bag-section" data-stock-size="{{ $size }}" data-full-key="{{ $fullKey }}">
   <div class="section-header" style="background: {{ $color }}">
     <span>{{ $icon }} {{ $size }}</span>
-    <span>{{ $items->count() }} items</span>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span>{{ $items->count() }} items</span>
+      <span class="focus-close" onclick="closeFocus(event)" title="Close">&times;</span>
+    </div>
   </div>
   <table>
     <thead>
