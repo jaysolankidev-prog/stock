@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>AHGO Stock Management</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/icon-512.png">
+
 <style>
   /* ── Reset & Base ── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -275,12 +281,48 @@
     .log-header { align-items: flex-start; }
     .log-tools { width: 100%; justify-content: flex-start; }
   }
+
+  /* ── PWA Install Banner ── */
+  .install-banner {
+    display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    width: 90%; max-width: 400px; background: #fff; border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 2000;
+    padding: 16px; align-items: center; gap: 14px;
+    border-left: 4px solid #e94560;
+    animation: slideUp 0.5s ease-out;
+  }
+  @keyframes slideUp {
+    from { bottom: -100px; opacity: 0; }
+    to { bottom: 20px; opacity: 1; }
+  }
+  .install-banner.active { display: flex; }
+  .install-icon { width: 48px; height: 48px; background: #1a1a2e; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .install-content { flex: 1; }
+  .install-content h4 { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+  .install-content p { font-size: 11px; color: #666; }
+  .install-actions { display: flex; gap: 8px; }
+  .btn-install { background: #e94560; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; }
+  .btn-install-close { background: #f0f2f5; color: #555; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; }
+
 </style>
 </head>
 <body>
 @php
   $canManageStock = auth()->user()?->isAdmin() ?? false;
 @endphp
+
+<!-- PWA Install Banner -->
+<div class="install-banner" id="pwaInstallBanner">
+  <div class="install-icon">📦</div>
+  <div class="install-content">
+    <h4>Install AHGO Stock</h4>
+    <p>Get quick access from your home screen.</p>
+  </div>
+  <div class="install-actions">
+    <button class="btn-install" id="btnPwaInstall">Install</button>
+    <button class="btn-install-close" onclick="dismissPwaBanner()">Not now</button>
+  </div>
+</div>
 
 <!-- Header -->
 <div class="header">
@@ -1069,6 +1111,55 @@ document.addEventListener('click', function(e) {
     });
   }
 });
+
+// PWA Logic
+let deferredPrompt;
+const installBanner = document.getElementById('pwaInstallBanner');
+const installBtn = document.getElementById('btnPwaInstall');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Prevent Chrome 67 and earlier from automatically showing the prompt
+  e.preventDefault();
+  // Stash the event so it can be triggered later.
+  deferredPrompt = e;
+  
+  // Only show banner if user hasn't dismissed it recently
+  if (!localStorage.getItem('pwaDismissed')) {
+    installBanner.classList.add('active');
+  }
+});
+
+installBtn.addEventListener('click', (e) => {
+  // Hide the app provided install promotion
+  installBanner.classList.remove('active');
+  // Show the install prompt
+  deferredPrompt.prompt();
+  // Wait for the user to respond to the prompt
+  deferredPrompt.userChoice.then((choiceResult) => {
+    if (choiceResult.outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+    } else {
+      console.log('User dismissed the install prompt');
+    }
+    deferredPrompt = null;
+  });
+});
+
+function dismissPwaBanner() {
+  installBanner.classList.remove('active');
+  // Optional: Don't show again for 7 days
+  localStorage.setItem('pwaDismissed', Date.now());
+}
+
+// Service Worker Registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('Service Worker registered', reg))
+      .catch(err => console.log('Service Worker registration failed', err));
+  });
+}
 </script>
+
 </body>
 </html>
